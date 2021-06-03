@@ -1,90 +1,77 @@
-import 'package:flame/gestures.dart';
-import 'package:flame/sprite.dart';
-import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flame/game.dart';
+import 'package:flame/flame.dart';
+import 'package:flame/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
-  final game = GameApp();
-  runApp(
-    GameWidget(
-      game: game,
-    ),
-  );
+  final game = new BoxGame();
+  runApp(GameWidget(game: game));
+
+  Flame.device.fullScreen();
+  Flame.device.setOrientation(DeviceOrientation.portraitUp);
 }
 
-class GameApp extends Game with TapDetector {
-  late SpriteAnimation runningRobot;
-  late final robotPosition;
-  final robotSize = Vector2(48, 60);
+class Colors {
+  static final bg = Color(0xFFFEEEEE);
+  static final win = Color(0x5000AA00);
+  static final lose = Color(0x50AA0000);
+}
 
-  late Sprite pressedButton;
-  late Sprite unpressedButton;
-  late final Vector2 buttonPosition;
-  final buttonSize = Vector2(120, 30);
-  bool isButtonPressed = false;
+class BoxGame extends Game with TapDetector {
+  late final double centerX;
+  late final double centerY;
+  late final Vector2 boxPos;
+  final Vector2 boxSize = Vector2(150, 150);
+  late final Rect box;
+  final Paint boxPaint = new Paint();
+  bool hasWon = false;
+
+  @override
+  Future<void> onLoad() async {
+    centerX = size.x / 2;
+    centerY = size.y / 2;
+
+    boxPos = Vector2(centerX - 75, centerY - 75);
+
+    box = Rect.fromLTWH(
+      boxPos.x,
+      boxPos.y,
+      boxSize.x,
+      boxSize.y,
+    );
+  }
+
+  @override
+  void update(double dt) {}
 
   @override
   void onTapDown(TapDownInfo event) {
-    final Rect buttonArea = buttonPosition & buttonSize;
+    super.onTapDown(event);
+
+    final Rect boxArea = boxPos & boxSize;
     final offset = event.eventPosition.game.toOffset();
-    isButtonPressed = buttonArea.contains(offset);
+    hasWon = boxArea.contains(offset);
   }
 
   @override
   void onTapUp(TapUpInfo event) {
-    isButtonPressed = false;
+    hasWon = false;
   }
 
   @override
   void onTapCancel() {
-    isButtonPressed = false;
-  }
-
-  @override
-  Future<void> onLoad() async {
-    robotPosition = Vector2(size.x / 2, size.y / 2);
-
-    runningRobot = await loadSpriteAnimation(
-      'robot.png',
-      SpriteAnimationData.sequenced(
-        amount: 8,
-        textureSize: Vector2(16, 18),
-        stepTime: 0.1,
-      ),
-    );
-
-    buttonPosition = Vector2(size.x / 2, size.y / 2 + 80);
-
-    unpressedButton = await loadSprite(
-      'buttons.png',
-      srcSize: Vector2(60, 20),
-    );
-
-    pressedButton = await loadSprite(
-      'buttons.png',
-      srcPosition: Vector2(0, 20),
-      srcSize: Vector2(60, 20),
-    );
-  }
-
-  @override
-  void update(double dt) {
-    if (isButtonPressed) {
-      runningRobot.update(dt);
-    }
+    hasWon = false;
   }
 
   @override
   void render(Canvas canvas) {
-    runningRobot
-        .getSprite()
-        .render(canvas, position: robotPosition, size: robotSize);
+    boxPaint.color = hasWon ? Colors.win : Colors.lose;
 
-    final button = isButtonPressed ? pressedButton : unpressedButton;
-
-    button.render(canvas, position: buttonPosition, size: buttonSize);
+    canvas.drawRect(box, boxPaint);
   }
 
   @override
-  Color backgroundColor() => const Color(0xFF222222);
+  Color backgroundColor() => Colors.bg;
 }
